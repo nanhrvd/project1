@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Places to Be
+{% endblock %}
+
+{% block heading %}
+    Uh oh, how unfortunate...
+{% endblock %}
+
+{% block body %}
+    <p>
+        {% if error is none %}
+        Something went wrong!
+        {% else %}
+        {{ error }}
+        {% endif %}
+    </p>
+    <p>
+        {% if ret is none or return_message is none %}
+        Go back to the last page!
+        {% else %}
+        <a href={{ ret }}>{{ return_message }}</a>
+        {% endif %}
+    </p>
+
+{% endblock %}
