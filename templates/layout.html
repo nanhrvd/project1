@@ -6,9 +6,11 @@
         <title>{% block title %}{% endblock %}</title>
     </head>
     <body>
-		 <div class="d-flex justify-content-end intro">
+        {% if stri is not none %}
+        <h1>{{ stri }}</h1>
+        {% endif %}
+		<div class="d-flex justify-content-end intro">
 		    {% if user_id == 0 %}
-		    <h1>user id is {{ user_id }}</h1>
 		  	<form action="/login" method="post">
                 <div class="input-group">
                     <input type="text" name="username" class="form-control form-control-sm mx-sm-3" placeholder="Username">
@@ -18,9 +20,9 @@
                 </div>
             </form>
             {% else %}
-            	<form action="/logout" method="post">
-                    <button type="button submit" class="btn btn-primary">Log Out</button>
-                </form>
+        	<form action="/logout" method="post">
+                <button type="button submit" class="btn btn-primary">Log Out</button>
+            </form>
             {% endif %}
         </div>
         <h1>{% block heading %}{% endblock%}</h1>

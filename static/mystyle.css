@@ -1,4 +1,4 @@
-h1, p {
+h1, h2, p {
     margin: 20px;
 }
 
@@ -10,9 +10,24 @@ a {
     background-color:lightgray;
 }
 
-.login {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+.place_form {
+    margin: 30px;
 }
 
+.login {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.places{
+    width: 90%;
+    color: #000;
+    background-color: lightskyblue;
+}
+
+.places:hover {
+    background-color: dodgerblue;
+    color: #000;
+    text-decoration: none;
+}

@@ -9,12 +9,96 @@
 {% endblock %}
 
 {% block body %}
-    <p>
-        Donec lobortis dapibus magna, quis facilisis velit malesuada a. Nunc iaculis augue nulla, sed sodales dui volutpat lacinia. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Nullam non lorem eget augue auctor feugiat at ut justo. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean nec lectus eget diam tempor aliquam sit amet sed augue.
-        <br>
-        <br>
-        <a href="{{ url_for('index') }}">Go back</a>
-
-    </p>
+    <h2>Where have you been?</h2>
+	<form class="place_form" method="get" action={{ url_for('index') }}>
+		<div class="form-row">
+			<div class="form-group col-md-6">
+				<label for="inputCity">City</label>
+				<input type="text" name="city" class="form-control" id="inputCity" value="{{ city }}" placeholder="City">
+			</div>
+			<div class="form-group col-md-4">
+				<label for="inputState">State</label>
+				<select id="inputState" name="state" class="form-control">
+					<option value="">N/A</option>
+					{% if state != "" %}
+					<option value="{{ state }}" selected>{{ state }}</option>
+					{% endif %}
+					<option value="AL">AL</option>
+					<option value="AL">AL</option>
+					<option value="AK">AK</option>
+					<option value="AR">AR</option>
+					<option value="AZ">AZ</option>
+					<option value="CA">CA</option>
+					<option value="CO">CO</option>
+					<option value="CT">CT</option>
+					<option value="DC">DC</option>
+					<option value="DE">DE</option>
+					<option value="FL">FL</option>
+					<option value="GA">GA</option>
+					<option value="HI">HI</option>
+					<option value="IA">IA</option>
+					<option value="ID">ID</option>
+					<option value="IL">IL</option>
+					<option value="IN">IN</option>
+					<option value="KS">KS</option>
+					<option value="KY">KY</option>
+					<option value="LA">LA</option>
+					<option value="MA">MA</option>
+					<option value="MD">MD</option>
+					<option value="ME">ME</option>
+					<option value="MI">MI</option>
+					<option value="MN">MN</option>
+					<option value="MO">MO</option>
+					<option value="MS">MS</option>
+					<option value="MT">MT</option>
+					<option value="NC">NC</option>
+					<option value="NE">NE</option>
+					<option value="NH">NH</option>
+					<option value="NJ">NJ</option>
+					<option value="NM">NM</option>
+					<option value="NV">NV</option>
+					<option value="NY">NY</option>
+					<option value="ND">ND</option>
+					<option value="OH">OH</option>
+					<option value="OK">OK</option>
+					<option value="OR">OR</option>
+					<option value="PA">PA</option>
+					<option value="RI">RI</option>
+					<option value="SC">SC</option>
+					<option value="SD">SD</option>
+					<option value="TN">TN</option>
+					<option value="TX">TX</option>
+					<option value="UT">UT</option>
+					<option value="VT">VT</option>
+					<option value="VA">VA</option>
+					<option value="WA">WA</option>
+					<option value="WI">WI</option>
+					<option value="WV">WV</option>
+					<option value="WY">WY</option>
+				</select>
+			</div>
+			<div class="form-group col-md-2">
+				<label for="inputZip">Zip Code</label>
+				<input type="text" name="zipcode" class="form-control" id="inputZip" value="{{ zipcode }}" placeholder="Zip Code">
+			</div>
+		</div>
+		<button type="submit" class="btn btn-primary">Search</button>
+	</form>
+	<br>
+	<br>
+	{% if results != [''] %}
+		{% if results != [] %}
+		<h2>Select a place to comment on:</h2>
+		<form method="get" action="{{ url_for('index') }}">
+			<div class="list-group">
+				{% for place in results %}
+				<button type="button submit" class="list-group-item list-group-item-action places mx-auto">{{ place[0] }}, {{ place[1] }} {{ place[2] }}</li>
+				{% endfor %}
+			</div>
+		</form>
+		{% else %}
+		<h2>No places found, try again!</h2>
+		{% endif %}
+	{% endif %}
 
 {% endblock %}

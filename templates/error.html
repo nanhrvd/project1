@@ -10,14 +10,14 @@
 
 {% block body %}
     <p>
-        {% if error is none %}
+        {% if error == none %}
         Something went wrong!
         {% else %}
         {{ error }}
         {% endif %}
     </p>
     <p>
-        {% if ret is none or return_message is none %}
+        {% if ret == none or return_message == none %}
         Go back to the last page!
         {% else %}
         <a href={{ ret }}>{{ return_message }}</a>
