@@ -37,7 +37,7 @@ def index():
     # get input data
     city = request.args.get('city', '')
     state = request.args.get('state', '')
-    zipreal = request.args.get('zipcode', -1)
+    zipreal = request.args.get('zipcode', '')
     if zipreal == '':
         zipcode = int(-1)
     else:
