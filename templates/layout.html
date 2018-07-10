@@ -6,9 +6,6 @@
         <title>{% block title %}{% endblock %}</title>
     </head>
     <body>
-        <!--{% if stri is not none and stri != '' %}-->
-        <!--<h1>{{ stri }}</h1>-->
-        <!--{% endif %}-->
 		<div class="d-flex justify-content-end intro">
 		    {% if user_id == 0 %}
 		  	<form action="/login" method="post">

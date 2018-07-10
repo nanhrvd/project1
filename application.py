@@ -310,7 +310,6 @@ def register():
 
 @app.route("/registration", methods=["POST", "GET"])
 def registration():
-    # see above note on why note methods=["POST"]
     if request.method != "POST":
         return redirect(url_for('register'))
 
