@@ -29,3 +29,8 @@ Places will display alert if no comments found
 Like the search, comments can be searched through using next and prev (position is saved if place is not changed)
 Comments sorted by descending order of time posted (newest coments are at the start, oldest are at the end)
 Option to post removed if user already posted
+
+API
+api will catch calls to /api and /api/
+    attempt to get zipcode of last selected place
+    otherwise error message requesting user /api/<zipcode>

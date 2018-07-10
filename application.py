@@ -4,6 +4,7 @@ import requests, json
 from datetime import datetime
 from dateutil import tz
 import pytz
+import json
 
 from flask import Flask, session, render_template, request, url_for, redirect
 from flask_session import Session
@@ -171,7 +172,7 @@ def places():
         message = 'Please go back to homepage!'
         return redirect(url_for('error', error=error, ret='index', return_message=message))
 
-    # formate city to capitalize
+    # format city to capitalize
     placedata = list(place)
     placedata[0] = placedata[0].lower().capitalize()
     session['zip'] = int(zipcode)
@@ -180,6 +181,7 @@ def places():
     # get weather
     weather_request = "https://api.darksky.net/forecast/%s/%s,%s"
     weather = requests.get(weather_request % (DS_KEY, place[4], place[5])).json()
+    # weather = weather.json()
     currently = weather['currently']
     summary = currently['summary']
     temp = currently['temperature']
@@ -385,6 +387,7 @@ def inc_si():
     if 'indices' not in session:
         session['indices'] = {"search_index":int(0), "places_index":int(0)}
 
+    # increment search index
     if s_delta != 0:
         leng = len(session['results'])
         ind = session['indices']['search_index']
@@ -397,6 +400,7 @@ def inc_si():
         else:
             session['indices']['search_index'] = ind+s_delta
         return redirect(url_for('index'))
+    # increment places page comment index
     else:
         comm = session['comments']
         leng = len(session['comments'])
@@ -410,3 +414,50 @@ def inc_si():
         else:
             session['indices']['places_index'] = ind+p_delta
         return redirect(url_for('places'))
+
+# catch bad api call
+@app.route("/api")
+@app.route("/api/")
+def api():
+    if 'zip' not in session or session['zip'] == 0:
+        error = "Error 404 Not found: please query api by using /api/<zipcode>"
+        message = 'Please go back to homepage!'
+        return redirect(url_for('error', error=error, ret='index', return_message=message))
+    else:
+        return redirect("/api/%s" % (session['zip']))
+
+# places api
+from flask_restful import Resource, Api
+from flask_jsonpify import jsonify
+api = Api(app)
+
+class PlaceData(Resource):
+    def get(self, zipcode):
+        # get location info
+        sql0 = "SELECT city, state, lat, long, zipcode, population FROM places WHERE zipcode= %d"
+        place = db.execute(sql0 % (int(zipcode))).fetchone()
+
+        # if zipcode is invalid, return 404 not found back to index
+        if place is None:
+            error = "Error 404 Not found: no location found with the zipcode you inputted!"
+            message = 'Please go back to homepage!'
+            return redirect(url_for('error', error=error, ret='index', return_message=message))
+
+        # get comment count
+        sql1 = "SELECT * FROM (SELECT comment, id, user_id FROM comments WHERE zipcode=%d) temp ORDER BY temp.id DESC"
+        counter = db.execute(sql1 % (int(zipcode))).rowcount
+
+        zip_str = str(zipcode)
+        if int(zipcode) <= (9999):
+            zip_str = "0" + zip_str
+
+        ret = {"place_name":place[0],
+            "state":place[1],
+            "latitude":place[2],
+            "longitude":place[3],
+            "zip":zip_str,
+            "population":place[5],
+            "check_ins":counter}
+        return jsonify(ret)
+
+api.add_resource(PlaceData, '/api/<zipcode>')
