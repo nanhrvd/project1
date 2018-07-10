@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Places to Be
+{% endblock %}
+
+{% block heading %}
+    Places to Be
+{% endblock %}
+
+{% block body %}
+	{% set my_string = ["0", place[2]] %}
+	{% set stri = my_string|join() %}
+	{% if place[2] <= 9999 %}
+        <h2>{{ place[0] }} {{ place[1] }}, {{ stri }}</h2>
+    {% else %}
+        <h2>{{ place[0] }} {{ place[1] }}, {{ place[2] }}</h2>
+    {% endif %}
+    <h3>Stats:</h3>
+    <table class="table table-sm datatable">
+        <thead>
+            <tr>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Population</th>
+                <th>Check-Ins</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ place[4] }}</td>
+                <td>{{ place[5] }}</td>
+                <td>{{ place[3] }}</td>
+                <td>{{ comments|length }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Weather °F: </h3>
+    <table class="table table-sm datatable">
+        <thead>
+            <tr>
+                <th>Time of Report</th>
+                <th>Summary</th>
+                <th>Temperature</th>
+                <th>Feels Like</th>
+                <th>Dew Point</th>
+                <th>Humidity</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ weather[0] }}</td>
+                <td>{{ weather[1] }}</td>
+                <td>{{ weather[2] }} °F</td>
+                <td>{{ weather[3] }} °F</td>
+                <td>{{ weather[4] }} °F</td>
+                <td>{{ weather[5] }}%</td>
+
+            </tr>
+        </tbody>
+    </table>
+    <h3>Comments on {{ place[0] }}:</h3>
+    {% if comments != [] %}
+    <table class="table table-sm datatable">
+        {% for comment, id, user_id in comments %}
+        <tr>
+            <td>{{ comment }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+	<form method="get" action="/inc" class="form-inline myindent">
+		<button type="button submit" name="p_delta" class="btn btn-primary mb-2" value=-1>Previous</button>
+		<button type="button submit" name="p_delta" class="btn btn-primary mb-2 mx-sm-3" value=1>Next</button>
+	</form>
+    {% else %}
+    <div class="alert alert-info">
+        No one has posted a comment yet; be the first!
+    </div>
+    {% endif %}
+    {% if not posted %}
+    <form action="/comment" class="myindent" method="post">
+        <div class="form-group">
+            <label for="exampleFormControlTextarea1">Post a Comment!</label>
+            <textarea class="form-control" id="exampleFormControlTextarea1" name="comment" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary mb-2">Post!</button>
+    </form>
+    {% else %}
+    <p>Thanks for posting a comment!</p>
+    {% endif %}
+    <a href={{ url_for('index') }} class="btn btn-info myindent" role="button">Back to search page!</a>
+{% endblock %}

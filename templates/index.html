@@ -10,7 +10,7 @@
 
 {% block body %}
     <h2>Where have you been?</h2>
-	<form class="place_form" method="get" action={{ url_for('index') }}>
+	<form class="myindent" method="get" action={{ url_for('index') }}>
 		<div class="form-row">
 			<div class="form-group col-md-6">
 				<label for="inputCity">City</label>
@@ -85,16 +85,28 @@
 		<button type="submit" class="btn btn-primary">Search</button>
 	</form>
 	<br>
-	<br>
 	{% if results != [''] %}
 		{% if results != [] %}
 		<h2>Select a place to comment on:</h2>
-		<form method="get" action="{{ url_for('index') }}">
+		<form method="get" action="{{ url_for('places') }}" class="mb-5">
 			<div class="list-group">
 				{% for place in results %}
-				<button type="button submit" class="list-group-item list-group-item-action places mx-auto">{{ place[0] }}, {{ place[1] }} {{ place[2] }}</li>
+					{% set my_string = ["0", place[2]] %}
+					{% set stri = my_string|join() %}
+					{% if place[2] <= 9999 %}
+						<button type="button submit" name="zipcode" class="list-group-item list-group-item-action places mx-auto"
+						value={{ place[2] }}>{{ place[0] }}, {{ place[1] }} {{ stri }}</li>
+					{% else %}
+						<button type="button submit" name="zipcode" class="list-group-item list-group-item-action places mx-auto"
+						value={{ place[2] }}>{{ place[0] }}, {{ place[1] }} {{ place[2] }}</li>
+					{% endif %}
+
 				{% endfor %}
 			</div>
+		</form>
+		<form method="get" action="/inc" class="form-inline myindent">
+			<button type="button submit" name="s_delta" class="btn btn-primary mb-2" value=-1>Previous</button>
+			<button type="button submit" name="s_delta" class="btn btn-primary mb-2 mx-sm-3" value=1>Next</button>
 		</form>
 		{% else %}
 		<h2>No places found, try again!</h2>

@@ -1,5 +1,9 @@
 import os
 import hashlib
+import requests, json
+from datetime import datetime
+from dateutil import tz
+import pytz
 
 from flask import Flask, session, render_template, request, url_for, redirect
 from flask_session import Session
@@ -7,6 +11,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 app = Flask(__name__)
+
+# API key
+# TODO: how to hide api key
+DS_KEY = "68e6092785397a30a1e9c98c64ad242d"
 
 # Check for environment variable
 if not os.getenv("DATABASE_URL"):
@@ -21,6 +29,9 @@ Session(app)
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
+# Sets how many results to display
+display = 5
+
 @app.route("/")
 def index():
     # initialize global varaiables
@@ -28,11 +39,10 @@ def index():
         session['user_id'] = 0
     if 'results' not in session:
         session['results'] = ['']
-    if 'index' not in session:
-        session['index'] = 0
+    if 'indices' not in session:
+        session['indices'] = {"search_index":int(0), "places_index":int(0)}
     if 'query' not in session:
         session['query'] = ('', '', '')
-    # stri = "no sql"
 
     # get input data
     city = request.args.get('city', '')
@@ -55,10 +65,10 @@ def index():
     # update query and get new results
     elif (city, state, zipreal) != session['query']:
         session['query'] = (city, state, zipreal)
+        session['indices']['search_index'] = 0
         sql0 = "SELECT city, state, zipcode, population, lat, long FROM places "
         # query the zipcode (can't wildcard zipcode b.c it is an integer primary key)
         if int(zipcode) != -1:
-            # stri = sql0 + "WHERE zipcode= %d" % (int(zipcode))
             temp = db.execute(sql0 + "WHERE zipcode= %d" % (int(zipcode))).fetchone()
             subset = [temp]
 
@@ -70,7 +80,6 @@ def index():
                             city=city,
                             state=state,
                             zipcode=zipreal,
-                            # stri=stri,
                             results=subset);
         # if zipcode fails, try %city% and state, sort by zipcode
         if city == '' and state == '' :
@@ -86,10 +95,11 @@ def index():
         sql3 = ") temp ORDER BY temp.zipcode"
         arg = {'like_city':like_city, 'state':state}
         temp = db.execute(sql2+sql0+sql1+sql3, arg).fetchall()
-        # stri=sql2+sql0+sql1+sql3, arg
         session['results'] = temp
 
     # get and parse results (should not be None)
+    # [''] means it is user's first time on page
+    # [] means no results found
     results = session['results']
     if results == None:
         return redirect(url_for('error',
@@ -98,43 +108,152 @@ def index():
     elif (results == ['']) or (results == []):
         subset = results
     else:
-        index = session['index']
-        results[index*10 : (index+1)*10]
-        subset = results
+        index = session['indices']['search_index']
+        subset = results[index*display : (index+1)*display]
 
+    query = session['query']
     return render_template('index.html',
                             user_id=session['user_id'],
-                            city=city,
-                            state=state,
-                            zipcode=zipreal,
-                            # stri=stri,
+                            city=query[0],
+                            state=query[1],
+                            zipcode=query[2],
                             results=subset);
+
+@app.route("/places")
+def places():
+    if 'zip' not in session:
+        session['zip'] = 0
+    if 'comments' not in session:
+        session['comments'] = []
+    if 'place' not in session:
+        session['place'] = None
+    if 'posted' not in session:
+        session['posted'] = False;
+    if 'user_id' not in session:
+        session['user_id'] = 0
+    if 'weather' not in session:
+        session['weather'] = {}
+
+    # check logged in
+    user_id = session['user_id']
+    if user_id == 0:
+        error = "Only users can view and post comments!"
+        message = "Please return to main page and log in!"
+        return redirect(url_for('error', error=error, ret='index', return_message=message))
+
+    # get inputted or last selected zipcode, return to index if no zipcode
+    zipcode = request.args.get('zipcode', 0)
+    if zipcode == 0:
+        zipcode = session['zip']
+
+    if zipcode == 0:
+        return redirect(url_for('index'))
+
+    # return cached results if zip is same as before
+    if zipcode == session['zip']:
+        comments = session['comments']
+        index = session['indices']['places_index']
+        subset = comments[index*display : (index+1)*display]
+        return render_template("places.html",
+                                user_id=user_id,
+                                place=session['place'],
+                                weather=session['weather'],
+                                comments=subset,
+                                posted=session['posted'])
+
+    # get sql data on zipcode, update last selected zipcode
+    sql0 = "SELECT city, state, zipcode, population, lat, long FROM places WHERE zipcode= %d"
+    place = db.execute(sql0 % (int(zipcode))).fetchone()
+
+    # if zipcode is invalid, return error back to index
+    if place is None:
+        error = "No location found with the zipcode you inputted!"
+        message = 'Please go back to homepage!'
+        return redirect(url_for('error', error=error, ret='index', return_message=message))
+
+    # formate city to capitalize
+    placedata = list(place)
+    placedata[0] = placedata[0].lower().capitalize()
+    session['zip'] = int(zipcode)
+    session['place'] = placedata
+
+    # get weather
+    weather_request = "https://api.darksky.net/forecast/%s/%s,%s"
+    weather = requests.get(weather_request % (DS_KEY, place[4], place[5])).json()
+    currently = weather['currently']
+    summary = currently['summary']
+    temp = currently['temperature']
+    tempApp = currently['apparentTemperature']
+    dewpoint = currently['dewPoint']
+    humidity = int(float(currently['humidity'])*100)
+
+    # parse time
+    time_zone = tz.gettz(weather['timezone'])
+    t_raw = datetime.fromtimestamp(currently['time']).strftime('%A %m %d %H:%M:%S %Y')
+    t_parse = datetime.strptime(t_raw, '%A %m %d %H:%M:%S %Y')
+    t_aware = pytz.utc.localize(t_parse)
+    t_zone = t_aware.astimezone(time_zone)
+    t_final = t_zone.strftime('%A %b %d %Y %H:%M:%S')
+
+    # store weather
+    parsed_weather = [t_final, summary, temp, tempApp, dewpoint, humidity]
+    session['weather'] = parsed_weather
+
+    # get comments
+    sql1 = "SELECT * FROM (SELECT comment, id, user_id FROM comments WHERE zipcode=%d) temp ORDER BY temp.id DESC"
+    comments = db.execute(sql1 % (int(zipcode))).fetchall()
+    session['comments'] = comments
+
+    # check if user already posted
+    posted = False
+    for comment in comments:
+        if comment[2] == user_id:
+            posted = True
+            break
+    session['posted'] = posted
+
+    index = session['indices']['places_index']
+    subset = comments[index*display : (index+1)*display]
+
+    return render_template("places.html",
+                            user_id=user_id,
+                            place=placedata,
+                            weather=parsed_weather,
+                            comments=subset,
+                            posted=posted)
+
+@app.route("/comment", methods=["POST", "GET"])
+def comment():
+    if request.method == "GET" or session['posted'] == True:
+        return render_template(url_for('places'))
+
+    # invariant: at this point places, zipcode, and user_id must be not None in session
+    zipcode = int(session['zip'])
+    user_id = int(session['user_id'])
+    # double check user hasn't posted
+    sql0 = "SELECT * FROM comments WHERE zipcode=%d AND user_id=%d"
+    check = db.execute(sql0 % (zipcode, user_id)).fetchone()
+    if check is not None:
+        session['posted'] = True
+        return redirect(url_for('places'))
+
+    comment = request.form['comment']
+    sql1 = "INSERT INTO comments (zipcode, user_id, comment) VALUES (%d, %d, :comment)"
+    db.execute(sql1 % (zipcode, user_id), {'comment':comment})
+    db.commit()
+    session['posted'] = True
+
+    sql2 = "SELECT * FROM (SELECT comment, id, user_id FROM comments WHERE zipcode=%d) temp ORDER BY temp.id DESC"
+    session['comments'] = db.execute(sql2 % (zipcode)).fetchall()
+    return redirect(url_for('places'))
+
+
 
 @app.route("/logout", methods=["POST","GET"])
 def logout():
+    session.clear()
     session['user_id'] = 0
     return redirect(url_for('index'));
-
-@app.route("/error")
-def error():
-    # intialize user id
-    if(not 'user_id' in session):
-        session['user_id'] = 0;
-
-    # get error message from parameters
-    error = request.args.get('error', None)
-    return_message = request.args.get('return_message', None)
-    arg_ret = request.args.get('ret', None)
-    try:
-        ret = url_for(arg_ret)
-    except:
-        ret = None
-
-    return render_template("error.html",
-        error=error,
-        ret=ret,
-        return_message=return_message,
-        user_id=session['user_id'])
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
@@ -226,3 +345,68 @@ def registration():
                     {"user": username_form}).fetchone()
     session['user_id'] = uid[0]
     return redirect(url_for('index'))
+
+@app.route("/error")
+def error():
+    # intialize user id
+    if(not 'user_id' in session):
+        session['user_id'] = 0;
+
+    # get error message from parameters
+    error = request.args.get('error', None)
+    return_message = request.args.get('return_message', None)
+    arg_ret = request.args.get('ret', None)
+    try:
+        ret = url_for(arg_ret)
+    except:
+        ret = None
+
+    return render_template("error.html",
+        error=error,
+        ret=ret,
+        return_message=return_message,
+        user_id=session['user_id'])
+
+# increments search index
+@app.route("/inc")
+def inc_si():
+    s_delta = int(request.args.get('s_delta', 0))
+    p_delta = int(request.args.get('p_delta', 0))
+    if s_delta == 0 and p_delta == 0:
+        return redirect(url_for('index'))
+    if s_delta != 0 and p_delta != 0:
+        return redirect(url_for('error', error='Please browse search options through the \"next\" and \"previous\" buttons!'))
+
+    # initialize global varaiables
+    if 'results' not in session:
+        session['results'] = ['']
+    if 'comments' not in session:
+        session['comments'] = []
+    if 'indices' not in session:
+        session['indices'] = {"search_index":int(0), "places_index":int(0)}
+
+    if s_delta != 0:
+        leng = len(session['results'])
+        ind = session['indices']['search_index']
+        max_leng = int(leng / display - (leng % display == 0))
+
+        if ind + s_delta < 0:
+            session['indices']['search_index'] = 0
+        elif ind + s_delta > max_leng:
+            session['indices']['search_index'] = max_leng
+        else:
+            session['indices']['search_index'] = ind+s_delta
+        return redirect(url_for('index'))
+    else:
+        comm = session['comments']
+        leng = len(session['comments'])
+        ind = session['indices']['places_index']
+        max_leng = int(leng / display - (leng % display == 0))
+
+        if ind + p_delta < 0:
+            session['indices']['places_index'] = 0
+        elif ind + p_delta > max_leng:
+            session['indices']['places_index'] = max_leng
+        else:
+            session['indices']['places_index'] = ind+p_delta
+        return redirect(url_for('places'))

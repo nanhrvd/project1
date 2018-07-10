@@ -1,4 +1,4 @@
-h1, h2, p {
+h1, h2, h3, p {
     margin: 20px;
 }
 
@@ -10,8 +10,16 @@ a {
     background-color:lightgray;
 }
 
-.place_form {
+.myindent {
     margin: 30px;
+    margin-top: -10px;
+}
+
+.datatable {
+    width:90%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: -10px;
 }
 
 .login {
@@ -21,13 +29,14 @@ a {
 }
 
 .places{
-    width: 90%;
+    width: 96%;
     color: #000;
     background-color: lightskyblue;
 }
 
 .places:hover {
     background-color: dodgerblue;
-    color: #000;
+    color: #FFF;
     text-decoration: none;
 }
+
